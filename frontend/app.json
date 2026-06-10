@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "CafePulse AI",
+    "slug": "cafepulse",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6F4E37"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cafepulse.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#6F4E37"
+      },
+      "package": "com.cafepulse.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-av"
+    ],
+    "scheme": "cafepulse"
+  }
+}
