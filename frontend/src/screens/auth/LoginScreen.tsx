@@ -8,10 +8,12 @@ import Input from '../../components/Input';
 import Button from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, FONTS, SPACING } from '../../constants/theme';
+import { useResponsive } from '../../hooks/useResponsive';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
+  const { isMobile, isLargeMobile } = useResponsive();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,8 +42,8 @@ export default function LoginScreen() {
     >
       <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Text style={styles.emoji}>☕</Text>
-          <Text style={styles.title}>CafePulse AI</Text>
+          <Text style={[styles.emoji, (isMobile || isLargeMobile) && { fontSize: 48 }]}>☕</Text>
+          <Text style={[styles.title, (isMobile || isLargeMobile) && { fontSize: FONTS.sizes.xxxl }]}>CafePulse AI</Text>
           <Text style={styles.subtitle}>Your AI-powered café advisor</Text>
         </View>
 

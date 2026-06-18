@@ -8,12 +8,14 @@ import Input from '../../components/Input';
 import Button from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, FONTS, SPACING, RADIUS } from '../../constants/theme';
+import { useResponsive } from '../../hooks/useResponsive';
 
 const BUSINESS_TYPES = ['Café', 'Restaurant', 'Bakery', 'Food Truck', 'Cloud Kitchen', 'Bar'];
 
 export default function BusinessSetupScreen() {
   const router = useRouter();
   const { setupBusiness } = useAuth();
+  const { isMobile, isLargeMobile } = useResponsive();
 
   const [cafeName, setCafeName] = useState('');
   const [location, setLocation] = useState('');
@@ -78,7 +80,7 @@ export default function BusinessSetupScreen() {
               onPress={() => setBusinessType(type)}
               variant={businessType === type ? 'primary' : 'outline'}
               size="sm"
-              style={styles.typeBtn}
+              style={[styles.typeBtn, (isMobile || isLargeMobile) && { minWidth: 72 }]}
             />
           ))}
         </View>

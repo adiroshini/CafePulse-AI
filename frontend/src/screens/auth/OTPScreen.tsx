@@ -6,6 +6,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import Button from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, FONTS, SPACING, RADIUS } from '../../constants/theme';
+import { useResponsive } from '../../hooks/useResponsive';
 
 export default function OTPScreen() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function OTPScreen() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const inputs = useRef<TextInput[]>([]);
+  const { isMobile, isLargeMobile } = useResponsive();
 
   const handleChange = (text: string, index: number) => {
     const newOtp = [...otp];
@@ -52,12 +54,16 @@ export default function OTPScreen() {
         <Text style={styles.devNote}>Dev OTP: {dev_otp}</Text>
       )}
 
-      <View style={styles.otpRow}>
+      <View style={[styles.otpRow, (isMobile || isLargeMobile) && { gap: SPACING.xs }]}>
         {otp.map((digit, i) => (
           <TextInput
             key={i}
             ref={(el) => { if (el) inputs.current[i] = el; }}
-            style={[styles.otpBox, digit ? styles.otpBoxFilled : null]}
+            style={[
+              styles.otpBox,
+              (isMobile || isLargeMobile) && { width: 40, height: 52 },
+              digit ? styles.otpBoxFilled : null,
+            ]}
             value={digit}
             onChangeText={(t) => handleChange(t, i)}
             keyboardType="numeric"

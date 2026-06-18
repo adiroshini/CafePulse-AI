@@ -9,10 +9,12 @@ import Input from '../../components/Input';
 import Button from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, FONTS, SPACING, RADIUS } from '../../constants/theme';
+import { useResponsive } from '../../hooks/useResponsive';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { register } = useAuth();
+  const { isMobile, isLargeMobile } = useResponsive();
 
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -55,8 +57,8 @@ export default function RegisterScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.emoji}>☕</Text>
-          <Text style={styles.title}>Create Account</Text>
+          <Text style={[styles.emoji, (isMobile || isLargeMobile) && { fontSize: 48 }]}>☕</Text>
+          <Text style={[styles.title, (isMobile || isLargeMobile) && { fontSize: FONTS.sizes.xxxl }]}>Create Account</Text>
           <Text style={styles.subtitle}>Start your café intelligence journey</Text>
         </View>
 

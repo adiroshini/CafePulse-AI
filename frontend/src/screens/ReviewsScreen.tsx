@@ -1,404 +1,341 @@
 import React, { useState } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Dimensions,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DEMO_REVIEWS, DEMO_DASHBOARD } from '../mock/demoData';
 
-const { width } = Dimensions.get('window');
-const SIDEBAR_W = 200;
-
 const C = {
   primary: '#32170d', primaryContainer: '#4b2c20', onPrimary: '#ffffff',
-  onPrimaryContainer: '#bf9282', tertiary: '#002416',
-  tertiaryContainer: '#003c27', onTertiaryContainer: '#6ba98a',
-  tertiaryFixed: '#b1f0ce', tertiaryFixedDim: '#95d4b3',
-  error: '#ba1a1a', errorContainer: '#ffdad6', onErrorContainer: '#93000a',
+  onPrimaryContainer: '#bf9282', onTertiaryContainer: '#6ba98a',
+  tertiaryFixed: '#b1f0ce', onTertiaryFixedVariant: '#0e5138',
+  error: '#ba1a1a', errorContainer: '#ffdad6',
   secondary: '#605e5b', secondaryContainer: '#e6e2de',
-  surface: '#f8f9ff', surfaceContainer: '#e6eeff',
-  surfaceContainerHigh: '#dee9fc', surfaceContainerLow: '#eff4ff',
+  surface: '#f8f9ff', surfaceContainerLow: '#eff4ff',
   surfaceContainerLowest: '#ffffff', surfaceContainerHighest: '#d9e3f6',
   onSurface: '#121c2a', onSurfaceVariant: '#504440',
-  outlineVariant: '#d5c3bd', outline: '#83746f',
-  amber: '#ffb300', background: '#F5F1ED',
-  onSecondaryFixed: '#1c1c19', onSecondaryContainer: '#666461',
+  outlineVariant: '#d5c3bd', amber: '#ffb300', background: '#F5F1ED',
 };
 
 const COMPLAINTS = [
-  { label: 'Waiting Time', size: 'xl', bg: C.errorContainer, color: C.onErrorContainer },
-  { label: 'Staff Behavior', size: 'lg', bg: C.surfaceContainerHighest, color: C.secondary },
-  { label: 'Cold Coffee', size: 'sm', bg: C.surfaceContainer, color: C.onSecondaryContainer },
-  { label: 'Loud Music', size: 'lg', bg: C.surfaceContainerHighest, color: C.secondary },
-  { label: 'Mobile App Glitch', size: 'sm', bg: C.surfaceContainer, color: C.onSecondaryContainer },
-  { label: 'Price Point', size: 'xl', bg: C.secondaryContainer, color: C.onSecondaryFixed },
-  { label: 'Table Cleanliness', size: 'sm', bg: C.surfaceContainer, color: C.onSecondaryContainer },
+  { key: 'waiting_time', label: 'Waiting Time', count: 5, top: true },
+  { key: 'staff_behavior', label: 'Staff Behavior', count: 3, top: false },
+  { key: 'food_temperature', label: 'Food Temperature', count: 2, top: false },
+  { key: 'food_quality', label: 'Food Quality', count: 1, top: false },
+  { key: 'cleanliness', label: 'Cleanliness', count: 0, top: false },
 ];
 
-const ROOT_NODES = [
-  { icon: 'timer-outline', bg: C.primaryContainer, color: C.onPrimaryContainer, label: 'Waiting Time', sub: 'Avg. 14 mins', size: 80 },
-  { icon: 'thumbs-down', bg: C.errorContainer, color: C.error, label: 'Negative Reviews', sub: '42 Reviews Today', size: 100 },
-  { icon: 'trending-down', bg: C.onSurface, color: C.tertiaryFixedDim, label: 'Revenue Loss', sub: 'Est. –₹8,500/Week', size: 90 },
+const STRENGTHS = [
+  { key: 'coffee_quality', label: 'Coffee Quality', count: 6, top: true },
+  { key: 'ambience', label: 'Ambience', count: 4, top: false },
+  { key: 'cleanliness', label: 'Cleanliness', count: 3, top: false },
+  { key: 'food_quality', label: 'Food Quality', count: 2, top: false },
+  { key: 'staff_behavior', label: 'Staff Behavior', count: 1, top: false },
 ];
 
 const SOURCE_COLORS: Record<string, string> = {
   google: '#4285F4', zomato: '#E23744', swiggy: '#FC8019', manual: C.primary,
 };
 
-function SentimentGauge() {
-  const pct = 75;
-  const r = 36;
-  const circ = 2 * Math.PI * r;
-  return (
-    <View style={sg.wrapper}>
-      <View style={sg.circle}>
-        <View style={[sg.ring, { borderColor: C.surfaceContainer }]} />
-        <View style={[sg.progress, { borderColor: C.onTertiaryContainer }]} />
-        <View style={sg.inner}>
-          <Text style={sg.pct}>75%</Text>
-        </View>
-      </View>
-      <View>
-        <Text style={sg.label}>NET POSITIVE</Text>
-        <Text style={sg.delta}>+4.2% from last month</Text>
-      </View>
-    </View>
-  );
-}
-const sg = StyleSheet.create({
-  wrapper: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },
-  circle: { width: 80, height: 80, alignItems: 'center', justifyContent: 'center' },
-  ring: { position: 'absolute', width: 80, height: 80, borderRadius: 40, borderWidth: 7 },
-  progress: {
-    position: 'absolute', width: 80, height: 80, borderRadius: 40, borderWidth: 7,
-    borderTopColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: 'transparent',
-    transform: [{ rotate: '60deg' }],
-  },
-  inner: { alignItems: 'center' },
-  pct: { fontSize: 18, fontWeight: '900', color: C.primary },
-  label: { fontSize: 9, fontWeight: '700', color: C.secondary, letterSpacing: 1.5 },
-  delta: { fontSize: 12, fontWeight: '600', color: C.onTertiaryContainer, marginTop: 2 },
-});
+type Tab = 'insights' | 'rootcause' | 'reviews';
 
-function Sidebar() {
-  const items = [
-    { icon: 'grid-outline', label: 'Dashboard' },
-    { icon: 'bar-chart', label: 'Review Intelligence', active: true },
-    { icon: 'restaurant-outline', label: 'Menu Studio' },
-    { icon: 'settings-outline', label: 'Operations' },
-    { icon: 'trending-up-outline', label: 'What-If Simulator' },
-  ];
+function StarRow({ rating }: { rating: number }) {
   return (
-    <View style={sb.bar}>
-      <View style={sb.brand}>
-        <Text style={sb.name}>CafePulse AI</Text>
-        <Text style={sb.sub}>INTELLIGENT BREWING</Text>
-      </View>
-      {items.map(item => (
-        <TouchableOpacity key={item.label} style={[sb.item, item.active && sb.itemActive]}>
-          <Ionicons name={item.icon as any} size={18} color={item.active ? C.primary : C.secondary} />
-          <Text style={[sb.itemLabel, item.active && sb.itemLabelActive]} numberOfLines={1}>{item.label}</Text>
-          {item.active && <View style={sb.activeBar} />}
-        </TouchableOpacity>
+    <View style={{ flexDirection: 'row', gap: 1 }}>
+      {[1, 2, 3, 4, 5].map(i => (
+        <Ionicons key={i} name="star" size={11} color={i <= rating ? C.amber : C.outlineVariant} />
       ))}
-      <View style={sb.profile}>
-        <Ionicons name="person-circle-outline" size={32} color={C.onPrimaryContainer} />
-        <View>
-          <Text style={sb.profileName}>Manager</Text>
-          <Text style={sb.profileCafe}>Morning Brew Cafe</Text>
-        </View>
-      </View>
     </View>
   );
 }
-const sb = StyleSheet.create({
-  bar: {
-    width: SIDEBAR_W, backgroundColor: C.surfaceContainerLow,
-    paddingVertical: 20, paddingHorizontal: 10,
-    borderRightWidth: 1, borderRightColor: C.outlineVariant,
-  },
-  brand: { marginBottom: 20, paddingHorizontal: 6 },
-  name: { fontSize: 16, fontWeight: '900', color: C.primary },
-  sub: { fontSize: 8, color: C.secondary, letterSpacing: 1.5, marginTop: 1 },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, paddingHorizontal: 10, borderRadius: 8, marginBottom: 2, position: 'relative' },
-  itemActive: { backgroundColor: C.surfaceContainerHigh },
-  itemLabel: { fontSize: 12, color: C.secondary, flex: 1 },
-  itemLabelActive: { color: C.primary, fontWeight: '700' },
-  activeBar: { position: 'absolute', right: 0, top: 4, bottom: 4, width: 3, backgroundColor: C.primary, borderRadius: 2 },
-  profile: { marginTop: 'auto' as any, flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 16, marginTop: 24, borderTopWidth: 1, borderTopColor: C.outlineVariant },
-  profileName: { fontSize: 12, fontWeight: '700', color: C.onSurface },
-  profileCafe: { fontSize: 10, color: C.secondary },
-});
 
 export default function ReviewsScreen() {
-  const [activeTab, setActiveTab] = useState<'insights' | 'reviews' | 'root'>('insights');
+  const [tab, setTab] = useState<Tab>('insights');
 
   return (
     <View style={s.root}>
-      <Sidebar />
-      <View style={{ flex: 1 }}>
-        {/* Top nav */}
-        <View style={s.topNav}>
-          <View style={s.searchBar}>
-            <Ionicons name="search-outline" size={15} color={C.secondary} />
-            <TextInput style={s.searchInput} placeholder="Search insights..." placeholderTextColor={C.secondary} />
-          </View>
-          <View style={s.topRight}>
-            <Ionicons name="notifications-outline" size={20} color={C.secondary} />
-            <View style={s.notifDot} />
-            <Text style={s.cafeName}>Morning Brew Cafe</Text>
-          </View>
+      {/* Header */}
+      <View style={s.header}>
+        <Text style={s.pageTitle}>Reviews & Insights</Text>
+        <View style={s.ratingBadge}>
+          <Ionicons name="star" size={13} color={C.amber} />
+          <Text style={s.ratingBadgeText}>{DEMO_DASHBOARD.avg_rating}</Text>
         </View>
+      </View>
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.canvas}>
-          {/* Page header */}
-          <View style={s.pageHeader}>
-            <View>
-              <Text style={s.pageTitle}>Intelligence &amp; Root Cause</Text>
-              <Text style={s.pageSubtitle}>Analyzing 1,248 reviews from the last 30 days.</Text>
-            </View>
-            <View style={s.headerBtns}>
-              <TouchableOpacity style={s.outlineBtn}>
-                <Ionicons name="calendar-outline" size={14} color={C.primary} />
-                <Text style={s.outlineBtnText}>Last 30 Days</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.solidBtn}>
-                <Ionicons name="download-outline" size={14} color={C.onPrimary} />
-                <Text style={s.solidBtnText}>Export</Text>
-              </TouchableOpacity>
+      {/* Tabs */}
+      <View style={s.tabs}>
+        {(['insights', 'rootcause', 'reviews'] as Tab[]).map(key => (
+          <TouchableOpacity key={key} style={[s.tab, tab === key && s.tabActive]} onPress={() => setTab(key)}>
+            <Text style={[s.tabText, tab === key && s.tabTextActive]}>
+              {key === 'insights' ? '🎯 Insights' : key === 'rootcause' ? '🔗 Root Cause' : '💬 Reviews'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* ── INSIGHTS TAB ── */}
+      {tab === 'insights' && (
+        <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+          {/* Sentiment Pulse */}
+          <View style={[s.card, { borderTopWidth: 3, borderTopColor: C.onTertiaryContainer }]}>
+            <Text style={s.cardTitle}>Sentiment Pulse</Text>
+            <View style={s.sentimentRow}>
+              <View style={s.gaugeCircle}>
+                <Text style={s.gaugeValue}>75%</Text>
+                <Text style={s.gaugeLabel}>Positive</Text>
+              </View>
+              <View style={{ flex: 1, gap: 10 }}>
+                <Text style={s.trendText}>+4.2% from last month</Text>
+                <View>
+                  <View style={s.barLabelRow}>
+                    <Text style={s.barLabel}>Strengths</Text>
+                    <Text style={s.barPct}>88%</Text>
+                  </View>
+                  <View style={s.barBg}>
+                    <View style={[s.barFill, { width: '88%', backgroundColor: C.onTertiaryContainer }]} />
+                  </View>
+                </View>
+                <View>
+                  <View style={s.barLabelRow}>
+                    <Text style={s.barLabel}>Weaknesses</Text>
+                    <Text style={s.barPct}>32%</Text>
+                  </View>
+                  <View style={s.barBg}>
+                    <View style={[s.barFill, { width: '32%', backgroundColor: C.amber }]} />
+                  </View>
+                </View>
+              </View>
             </View>
           </View>
 
-          {/* Sub-tabs */}
-          <View style={s.tabs}>
-            {(['insights', 'reviews', 'root'] as const).map(tab => (
-              <TouchableOpacity key={tab} style={[s.tab, activeTab === tab && s.tabActive]} onPress={() => setActiveTab(tab)}>
-                <Text style={[s.tabText, activeTab === tab && s.tabTextActive]}>
-                  {tab === 'insights' ? '🎯 Insights' : tab === 'reviews' ? '💬 Reviews' : '🔗 Root Cause'}
-                </Text>
-              </TouchableOpacity>
+          {/* Complaint Tag Cloud */}
+          <View style={[s.card, { borderTopWidth: 3, borderTopColor: C.error }]}>
+            <Text style={s.cardTitle}>Complaint Tag Cloud</Text>
+            <View style={s.tagCloud}>
+              <View style={[s.tag, { backgroundColor: C.errorContainer }]}>
+                <Text style={[s.tagText, { color: C.error, fontSize: 15 }]}>Waiting Time</Text>
+              </View>
+              <View style={[s.tag, { backgroundColor: C.secondaryContainer }]}>
+                <Text style={[s.tagText, { color: C.secondary, fontSize: 12 }]}>Staff Behavior</Text>
+              </View>
+              <View style={[s.tag, { backgroundColor: C.surfaceContainerHighest }]}>
+                <Text style={[s.tagText, { color: C.onSurfaceVariant, fontSize: 10 }]}>Cold Coffee</Text>
+              </View>
+              <View style={[s.tag, { backgroundColor: C.secondaryContainer }]}>
+                <Text style={[s.tagText, { color: C.secondary, fontSize: 14 }]}>Price Point</Text>
+              </View>
+              <View style={[s.tag, { backgroundColor: C.surfaceContainerHighest }]}>
+                <Text style={[s.tagText, { color: C.onSurfaceVariant, fontSize: 11 }]}>Loud Music</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Complaint Breakdown */}
+          <View style={s.card}>
+            <Text style={s.cardTitle}>Complaint Breakdown</Text>
+            {COMPLAINTS.map((c, i) => (
+              <View key={i} style={s.breakdownRow}>
+                <Text style={s.breakdownLabel}>{c.label}</Text>
+                {c.top && (
+                  <View style={[s.topBadge, { backgroundColor: C.errorContainer }]}>
+                    <Text style={[s.topBadgeText, { color: C.error }]}>TOP</Text>
+                  </View>
+                )}
+                <View style={s.breakdownBarBg}>
+                  <View style={[s.breakdownBarFill, {
+                    width: c.count > 0 ? `${(c.count / 6) * 100}%` : '2%',
+                    backgroundColor: c.top ? C.error : C.secondary + '80',
+                  }]} />
+                </View>
+                <Text style={s.breakdownCount}>{c.count}</Text>
+              </View>
             ))}
           </View>
 
-          {/* ── INSIGHTS TAB ── */}
-          {activeTab === 'insights' && (
-            <View style={s.grid}>
-              {/* Sentiment Pulse */}
-              <View style={[s.card, s.borderGreen, { flex: 1, minWidth: 240 }]}>
-                <Text style={s.cardTitle}>Sentiment Pulse</Text>
-                <SentimentGauge />
-                <View style={{ gap: 8 }}>
-                  <View style={s.barRow}>
-                    <Text style={s.barLabel}>Strengths</Text>
-                    <View style={s.greenPill}><Text style={s.greenPillText}>Coffee, Decor</Text></View>
+          {/* Strength Breakdown */}
+          <View style={s.card}>
+            <Text style={s.cardTitle}>Strength Breakdown</Text>
+            {STRENGTHS.map((c, i) => (
+              <View key={i} style={s.breakdownRow}>
+                <Text style={s.breakdownLabel}>{c.label}</Text>
+                {c.top && (
+                  <View style={[s.topBadge, { backgroundColor: C.tertiaryFixed }]}>
+                    <Text style={[s.topBadgeText, { color: C.onTertiaryFixedVariant }]}>TOP</Text>
                   </View>
-                  <View style={s.track}><View style={[s.fill, { width: '88%', backgroundColor: C.onTertiaryContainer }]} /></View>
-                  <View style={s.barRow}>
-                    <Text style={s.barLabel}>Weaknesses</Text>
-                    <View style={s.orangePill}><Text style={s.orangePillText}>Speed, Parking</Text></View>
-                  </View>
-                  <View style={s.track}><View style={[s.fill, { width: '32%', backgroundColor: '#ecbcaa' }]} /></View>
+                )}
+                <View style={s.breakdownBarBg}>
+                  <View style={[s.breakdownBarFill, {
+                    width: `${(c.count / 7) * 100}%`,
+                    backgroundColor: c.top ? C.onTertiaryContainer : C.onTertiaryContainer + '60',
+                  }]} />
                 </View>
+                <Text style={s.breakdownCount}>{c.count}</Text>
               </View>
+            ))}
+          </View>
 
-              {/* Complaints Cloud */}
-              <View style={[s.card, s.borderRed, { flex: 2, minWidth: 280 }]}>
-                <View style={s.cardHeader}>
-                  <View>
-                    <Text style={s.cardTitle}>Top Complaints Cloud</Text>
-                    <Text style={s.cardSub}>NLP-extracted themes from negative reviews.</Text>
-                  </View>
-                  <Ionicons name="warning" size={20} color={C.error} />
-                </View>
-                <View style={s.cloud}>
-                  {COMPLAINTS.map((c, i) => (
-                    <TouchableOpacity
-                      key={i}
-                      style={[
-                        s.tag,
-                        { backgroundColor: c.bg },
-                        c.size === 'xl' && s.tagXl,
-                        c.size === 'lg' && s.tagLg,
-                      ]}
-                    >
-                      <Text style={[
-                        s.tagText,
-                        { color: c.color },
-                        c.size === 'xl' && s.tagTextXl,
-                        c.size === 'lg' && s.tagTextLg,
-                      ]}>
-                        {c.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            </View>
-          )}
+          {/* At-Risk Card */}
+          <View style={[s.card, { borderLeftWidth: 4, borderLeftColor: C.error }]}>
+            <Text style={s.atRiskTitle}>🚨 {DEMO_DASHBOARD.at_risk_customer_count} Customers At Risk</Text>
+            <Text style={s.atRiskDesc}>These customers have left 2+ low ratings and may not return.</Text>
+            <Text style={s.atRiskBullet}>• Send loyalty reward or free coffee coupon</Text>
+            <Text style={s.atRiskBullet}>• Follow up with personal apology message</Text>
+            <Text style={s.atRiskBullet}>• Offer priority service on next visit</Text>
+          </View>
 
-          {/* ── ROOT CAUSE TAB ── */}
-          {activeTab === 'root' && (
-            <View style={[s.card, { marginTop: 12 }]}>
-              <Text style={s.cardTitle}>Root Cause Impact Map</Text>
-              <Text style={s.cardSub}>Causal relationships between operational friction and revenue loss.</Text>
-
-              {/* Node chain */}
-              <View style={s.nodeChain}>
-                {ROOT_NODES.map((node, i) => (
-                  <View key={i} style={s.nodeWrapper}>
-                    <View style={[s.nodeCircle, { width: node.size, height: node.size, borderRadius: node.size / 2, backgroundColor: node.bg }]}>
-                      <Ionicons name={node.icon as any} size={node.size * 0.38} color={node.color} />
-                    </View>
-                    <Text style={s.nodeLabel}>{node.label}</Text>
-                    <Text style={s.nodeSub}>{node.sub}</Text>
-                    {i < ROOT_NODES.length - 1 && (
-                      <View style={s.arrow}>
-                        <Ionicons name="arrow-forward" size={20} color={C.primaryContainer} />
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </View>
-
-              {/* Quote */}
-              <View style={s.quoteBox}>
-                <Ionicons name="sparkles" size={14} color={C.onTertiaryContainer} />
-                <Text style={s.quoteText}>
-                  "AI Correlation: A 10% reduction in waiting time correlates to an 8% increase in repeat customer revenue."
-                </Text>
-              </View>
-
-              {/* Chain list */}
-              <View style={s.chainList}>
-                {['Long Waiting Time', '→ Negative Reviews Generated', '→ Lower Star Ratings', '→ Reduced Repeat Customers', '→ Revenue Loss (–18%)'].map((step, i) => (
-                  <Text key={i} style={[s.chainStep, i === 0 && s.chainFirst]}>{step}</Text>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* ── REVIEWS TAB ── */}
-          {activeTab === 'reviews' && (
-            <View style={{ gap: 10, marginTop: 12 }}>
-              {DEMO_REVIEWS.map((review, i) => (
-                <View key={i} style={s.reviewCard}>
-                  <View style={s.reviewTop}>
-                    <View style={[s.sourceBadge, { backgroundColor: SOURCE_COLORS[review.source] || C.primary }]}>
-                      <Text style={s.sourceText}>{review.source.toUpperCase()}</Text>
-                    </View>
-                    <Text style={[s.stars, { color: review.rating >= 4 ? C.onTertiaryContainer : review.rating >= 3 ? C.amber : C.error }]}>
-                      {'★'.repeat(Math.round(review.rating))}{'☆'.repeat(5 - Math.round(review.rating))}
-                    </Text>
-                    <Text style={s.ratingNum}>{review.rating.toFixed(1)}</Text>
-                    <Text style={s.reviewDate}>{review.date}</Text>
-                  </View>
-                  <Text style={s.reviewText}>{review.text}</Text>
-                  <Text style={s.reviewAuthor}>{review.customer_name}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
+          <View style={{ height: 30 }} />
         </ScrollView>
-      </View>
+      )}
 
-      {/* FAB */}
-      <TouchableOpacity style={s.fab}>
-        <Ionicons name="mic" size={16} color={C.onPrimary} />
-        <Text style={s.fabText}>Voice Assistant</Text>
-      </TouchableOpacity>
+      {/* ── ROOT CAUSE TAB ── */}
+      {tab === 'rootcause' && (
+        <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+          <View style={s.card}>
+            <Text style={s.cardTitle}>Root Cause Analysis</Text>
+            {/* Node 1 */}
+            <View style={s.rcNode}>
+              <View style={[s.rcIconBox, { backgroundColor: C.primaryContainer + '40' }]}>
+                <Ionicons name="timer-outline" size={22} color={C.primary} />
+              </View>
+              <View style={s.rcNodeText}>
+                <Text style={s.rcNodeTitle}>Long Waiting Time</Text>
+                <Text style={s.rcNodeDesc}>Avg. 22 min during peak hours (expected: 10 min)</Text>
+              </View>
+            </View>
+            <View style={s.rcArrow}><Text style={s.rcArrowText}>↓</Text></View>
+            {/* Node 2 */}
+            <View style={s.rcNode}>
+              <View style={[s.rcIconBox, { backgroundColor: C.errorContainer }]}>
+                <Ionicons name="thumbs-down-outline" size={22} color={C.error} />
+              </View>
+              <View style={s.rcNodeText}>
+                <Text style={s.rcNodeTitle}>Negative Reviews</Text>
+                <Text style={s.rcNodeDesc}>60% of reviews mention waiting time. Rating dropped to 3.4</Text>
+              </View>
+            </View>
+            <View style={s.rcArrow}><Text style={s.rcArrowText}>↓</Text></View>
+            {/* Node 3 */}
+            <View style={s.rcNode}>
+              <View style={[s.rcIconBox, { backgroundColor: C.primary }]}>
+                <Ionicons name="trending-down-outline" size={22} color={C.onPrimary} />
+              </View>
+              <View style={s.rcNodeText}>
+                <Text style={s.rcNodeTitle}>Revenue Loss –18%</Text>
+                <Text style={s.rcNodeDesc}>Reduced repeat customers driving monthly revenue decline</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* AI Quote */}
+          <View style={[s.card, { backgroundColor: C.tertiaryFixed + '30', borderLeftWidth: 3, borderLeftColor: C.onTertiaryContainer }]}>
+            <Ionicons name="sparkles-outline" size={15} color={C.onTertiaryFixedVariant} />
+            <Text style={s.aiQuote}>
+              "A 10% reduction in waiting time correlates to an 8% increase in repeat customer revenue."
+            </Text>
+            <Text style={s.aiQuoteSource}>— Sarvam AI Analysis</Text>
+          </View>
+
+          {/* Chain Steps */}
+          <View style={s.card}>
+            <Text style={s.cardTitle}>Causal Chain</Text>
+            {['Waiting Time', 'Negative Reviews', 'Lower Ratings', 'Reduced Repeat Customers', 'Revenue Loss (–18%)'].map((step, i, arr) => (
+              <View key={i}>
+                <View style={s.chainStep}>
+                  <View style={[s.chainDot, { backgroundColor: i === 0 ? C.amber : i === arr.length - 1 ? C.error : C.secondary }]} />
+                  <Text style={s.chainStepText}>{step}</Text>
+                </View>
+                {i < arr.length - 1 && <View style={s.chainLine} />}
+              </View>
+            ))}
+          </View>
+
+          <View style={{ height: 30 }} />
+        </ScrollView>
+      )}
+
+      {/* ── REVIEWS TAB ── */}
+      {tab === 'reviews' && (
+        <FlatList
+          data={DEMO_REVIEWS}
+          keyExtractor={(_, i) => i.toString()}
+          contentContainerStyle={s.content}
+          showsVerticalScrollIndicator={false}
+          ListFooterComponent={<View style={{ height: 30 }} />}
+          renderItem={({ item }) => (
+            <View style={s.reviewCard}>
+              <View style={s.reviewHeader}>
+                <View style={[s.sourceBadge, { backgroundColor: SOURCE_COLORS[item.source] }]}>
+                  <Text style={s.sourceBadgeText}>{item.source.toUpperCase()}</Text>
+                </View>
+                <StarRow rating={item.rating} />
+                <Text style={s.reviewRating}>{item.rating}/5</Text>
+                <Text style={s.reviewDate}>{item.date}</Text>
+              </View>
+              <Text style={s.reviewText}>{item.text}</Text>
+              <Text style={s.reviewCustomer}>— {item.customer_name}</Text>
+            </View>
+          )}
+        />
+      )}
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, flexDirection: 'row', backgroundColor: C.background },
-  topNav: {
-    height: 52, flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', paddingHorizontal: 16,
-    backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.outlineVariant,
-  },
-  searchBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: C.surfaceContainerLow, borderRadius: 999,
-    paddingHorizontal: 12, paddingVertical: 5,
-    borderWidth: 1, borderColor: C.outlineVariant, flex: 1, maxWidth: 240,
-  },
-  searchInput: { fontSize: 12, color: C.onSurface, flex: 1 },
-  topRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  notifDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.error, marginLeft: -14, marginTop: -10 },
-  cafeName: { fontSize: 13, fontWeight: '800', color: C.primary },
-  canvas: { padding: 16, paddingBottom: 80 },
-  pageHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 },
+  root: { flex: 1, backgroundColor: C.background },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.outlineVariant },
   pageTitle: { fontSize: 18, fontWeight: '900', color: C.primary },
-  pageSubtitle: { fontSize: 12, color: C.secondary, marginTop: 2 },
-  headerBtns: { flexDirection: 'row', gap: 8 },
-  outlineBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: C.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  outlineBtnText: { fontSize: 11, color: C.primary, fontWeight: '700' },
-  solidBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  solidBtnText: { fontSize: 11, color: C.onPrimary, fontWeight: '700' },
-  tabs: { flexDirection: 'row', backgroundColor: C.surface, borderRadius: 10, padding: 3, marginBottom: 12, borderWidth: 1, borderColor: C.outlineVariant },
-  tab: { flex: 1, paddingVertical: 7, alignItems: 'center', borderRadius: 8 },
-  tabActive: { backgroundColor: C.primaryContainer },
+  ratingBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.amber + '20', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  ratingBadgeText: { fontSize: 13, fontWeight: '900', color: C.amber },
+  tabs: { flexDirection: 'row', backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.outlineVariant },
+  tab: { flex: 1, paddingVertical: 11, alignItems: 'center' },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: C.primary },
   tabText: { fontSize: 11, color: C.secondary, fontWeight: '600' },
-  tabTextActive: { color: C.onPrimary },
-  grid: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-  card: {
-    backgroundColor: C.surfaceContainerLowest, borderRadius: 12, padding: 14,
-    shadowColor: '#4b2c20', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08, shadowRadius: 10, elevation: 3,
-  },
-  borderGreen: { borderTopWidth: 4, borderTopColor: C.onTertiaryContainer },
-  borderRed: { borderTopWidth: 4, borderTopColor: C.error },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
-  cardTitle: { fontSize: 14, fontWeight: '800', color: C.primary, marginBottom: 4 },
-  cardSub: { fontSize: 11, color: C.secondary },
-  barRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  barLabel: { fontSize: 12, color: C.secondary, fontWeight: '500' },
-  track: { height: 6, backgroundColor: C.surfaceContainerLow, borderRadius: 3, overflow: 'hidden', marginTop: 4, marginBottom: 8 },
-  fill: { height: '100%', borderRadius: 3 },
-  greenPill: { backgroundColor: 'rgba(149,212,179,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
-  greenPillText: { fontSize: 10, color: '#0e5138', fontWeight: '600' },
-  orangePill: { backgroundColor: '#ffdbce', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
-  orangePillText: { fontSize: 10, color: '#613e31', fontWeight: '600' },
-  cloud: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  tag: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  tagXl: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
-  tagLg: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
-  tagText: { fontSize: 11, fontWeight: '600' },
-  tagTextXl: { fontSize: 15, fontWeight: '800' },
-  tagTextLg: { fontSize: 13, fontWeight: '700' },
-  nodeChain: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', marginVertical: 20, flexWrap: 'wrap', gap: 8 },
-  nodeWrapper: { alignItems: 'center', position: 'relative' },
-  nodeCircle: { justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: C.surfaceContainerLowest, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 5, marginBottom: 6 },
-  nodeLabel: { fontSize: 12, fontWeight: '800', color: C.primary, textAlign: 'center', maxWidth: 90 },
-  nodeSub: { fontSize: 10, color: C.secondary, textAlign: 'center' },
-  arrow: { position: 'absolute', right: -22, top: '40%' as any },
-  quoteBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: C.surfaceContainerLow, borderWidth: 1, borderColor: C.outlineVariant, borderRadius: 10, padding: 12, marginTop: 12 },
-  quoteText: { flex: 1, fontSize: 12, color: C.primary, fontStyle: 'italic', lineHeight: 18 },
-  chainList: { marginTop: 14, gap: 6 },
-  chainStep: { fontSize: 13, color: C.onSurfaceVariant, paddingLeft: 10 },
-  chainFirst: { color: C.error, fontWeight: '800', paddingLeft: 0, fontSize: 14 },
-  reviewCard: {
-    backgroundColor: C.surfaceContainerLowest, borderRadius: 12, padding: 14,
-    shadowColor: '#4b2c20', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2,
-  },
-  reviewTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  sourceBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5 },
-  sourceText: { fontSize: 9, color: '#fff', fontWeight: '800' },
-  stars: { fontSize: 12, letterSpacing: 1 },
-  ratingNum: { fontSize: 12, fontWeight: '700', color: C.onSurface },
-  reviewDate: { fontSize: 10, color: C.secondary, marginLeft: 'auto' as any },
-  reviewText: { fontSize: 13, color: C.onSurface, lineHeight: 20 },
-  reviewAuthor: { fontSize: 11, color: C.secondary, fontWeight: '600', marginTop: 6 },
-  fab: {
-    position: 'absolute', bottom: 20, right: 20,
-    backgroundColor: C.primary, borderRadius: 999,
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 16, paddingVertical: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2, shadowRadius: 10, elevation: 8,
-  },
-  fabText: { fontSize: 12, fontWeight: '700', color: C.onPrimary },
+  tabTextActive: { color: C.primary, fontWeight: '800' },
+  content: { padding: 14 },
+  card: { backgroundColor: C.surfaceContainerLowest, borderRadius: 14, padding: 14, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  cardTitle: { fontSize: 14, fontWeight: '800', color: C.primary, marginBottom: 12 },
+  sentimentRow: { flexDirection: 'row', gap: 16, alignItems: 'center' },
+  gaugeCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.tertiaryFixed + '50', borderWidth: 3, borderColor: C.onTertiaryContainer, justifyContent: 'center', alignItems: 'center' },
+  gaugeValue: { fontSize: 16, fontWeight: '900', color: C.onTertiaryFixedVariant },
+  gaugeLabel: { fontSize: 9, color: C.secondary, fontWeight: '600' },
+  trendText: { fontSize: 11, color: C.onTertiaryFixedVariant, fontWeight: '700' },
+  barLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 },
+  barLabel: { fontSize: 10, color: C.secondary, fontWeight: '600' },
+  barPct: { fontSize: 10, color: C.onSurface, fontWeight: '700' },
+  barBg: { height: 6, backgroundColor: C.surfaceContainerHighest, borderRadius: 3, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 3 },
+  tagCloud: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tag: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  tagText: { fontWeight: '700' },
+  breakdownRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  breakdownLabel: { width: 110, fontSize: 11, color: C.onSurface, fontWeight: '500' },
+  topBadge: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 },
+  topBadgeText: { fontSize: 8, fontWeight: '900' },
+  breakdownBarBg: { flex: 1, height: 6, backgroundColor: C.surfaceContainerHighest, borderRadius: 3, overflow: 'hidden' },
+  breakdownBarFill: { height: '100%', borderRadius: 3 },
+  breakdownCount: { width: 16, fontSize: 11, fontWeight: '700', color: C.onSurface, textAlign: 'right' },
+  atRiskTitle: { fontSize: 15, fontWeight: '900', color: C.error, marginBottom: 6 },
+  atRiskDesc: { fontSize: 12, color: C.secondary, marginBottom: 8, lineHeight: 17 },
+  atRiskBullet: { fontSize: 12, color: C.onSurface, lineHeight: 20 },
+  rcNode: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rcIconBox: { width: 46, height: 46, borderRadius: 23, justifyContent: 'center', alignItems: 'center' },
+  rcNodeText: { flex: 1 },
+  rcNodeTitle: { fontSize: 13, fontWeight: '800', color: C.onSurface },
+  rcNodeDesc: { fontSize: 11, color: C.secondary, lineHeight: 16, marginTop: 2 },
+  rcArrow: { paddingLeft: 20, paddingVertical: 4 },
+  rcArrowText: { fontSize: 20, color: C.primary, fontWeight: '900' },
+  aiQuote: { fontSize: 13, color: C.onTertiaryFixedVariant, fontStyle: 'italic', lineHeight: 20, marginTop: 8, marginBottom: 4 },
+  aiQuoteSource: { fontSize: 10, color: C.secondary, fontWeight: '600' },
+  chainStep: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  chainDot: { width: 10, height: 10, borderRadius: 5 },
+  chainStepText: { fontSize: 13, color: C.onSurface, fontWeight: '500' },
+  chainLine: { width: 2, height: 18, backgroundColor: C.outlineVariant, marginLeft: 4 },
+  reviewCard: { backgroundColor: C.surfaceContainerLowest, borderRadius: 12, padding: 13, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 },
+  reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' },
+  sourceBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 },
+  sourceBadgeText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
+  reviewRating: { fontSize: 11, fontWeight: '700', color: C.amber },
+  reviewDate: { fontSize: 10, color: C.secondary, marginLeft: 'auto' },
+  reviewText: { fontSize: 12, color: C.onSurface, lineHeight: 18, marginBottom: 6 },
+  reviewCustomer: { fontSize: 11, color: C.secondary, fontWeight: '600' },
 });

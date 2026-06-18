@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#6F4E37"
+      "backgroundColor": "#32170d"
     },
     "ios": {
       "supportsTablet": true,
@@ -18,7 +18,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#6F4E37"
+        "backgroundColor": "#32170d"
       },
       "package": "com.cafepulse.app"
     },
@@ -27,9 +27,13 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-router",
-      "expo-av"
+      "expo-router"
     ],
-    "scheme": "cafepulse"
+    "scheme": "cafepulse",
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    }
   }
 }
